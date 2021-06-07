@@ -1,0 +1,111 @@
+#!/usr/bin/python3
+# COMP3311 20T3 Ass3 ... print info about cast and crew for Movie
+
+import sys
+import psycopg2
+#from helpers import whatever, functions, you, need
+from helpers import *
+# define any local helper functions here
+
+# set up some globals
+
+usage = "Usage: minfo 'MovieTitlePattern' [Year]"
+db = None
+# process command-line args
+
+argc = len(sys.argv)
+if(argc > 3 or argc < 2):
+  print(usage)
+  exit(1)
+if(argc == 3 and not sys.argv[2].isdigit()):
+    print(usage)
+    exit(1)
+pattern = sys.argv[1]
+# manipulate database
+
+try:
+  db = psycopg2.connect("dbname=imdb")
+  cur = db.cursor()
+  try:
+    if(argc == 2):
+      if(pattern.startswith("^") and pattern.endswith("$")):
+        query = """
+              select title, start_year, id from Movies
+              where lower(title) = """
+        query = query + "\'" + pattern.lower()[1:-1] + "\'" + "\norder by start_year, title"
+        pattern = pattern[1:-1]
+      else:
+        query = """
+                select title, start_year, id from Movies
+                where lower(title) like """
+        query = query + "\'%" + pattern.lower() + "%\'" + "\norder by start_year, title"
+    else:
+      year = sys.argv[2]
+      if(pattern.startswith("^") and pattern.endswith("$")):
+        query = """
+              select title, start_year, id from Movies
+              where lower(title) = """
+        query = query + "\'" + pattern.lower()[1:-1] + "\'" + "\nand start_year = " + year + "\norder by start_year, title"
+        pattern = pattern[1:-1]
+      else:
+        query = """
+                select title, start_year, id from Movies
+                where lower(title) like """
+        query = query + "\'%" + pattern.lower() + "%\'" + "\nand start_year = " + year + "\norder by start_year, title"
+    cur.execute(query)
+    result = cur.fetchall()
+    size = len(result)
+
+    if(size == 0):
+      if(argc == 2):
+        print("No movie matching \'" + pattern + "\'")
+      else:
+        print("No movie matching \'" + pattern + "\' " + sys.argv[2])
+    elif(size != 1):
+      cur.execute(query)
+      if(argc == 2):
+        print("Movies matching \'" + pattern + "\'")
+      else:
+        print("Movies matching \'" + pattern + "\' " + sys.argv[2])
+      print("===============")
+      for tup in cur.fetchall():
+        name, year, id = tup
+        print(name + " " + getYear(year))
+    else:
+      cur.execute(query)
+      tup = cur.fetchone()
+      movieId = tup[2]
+      year = tup[1]
+      movieName = tup[0]
+      print(movieName + " " + getYear(year))
+      print("===============")
+      print("Starring")
+      query = f"""
+              select N.name, A.played from Movies M
+              join Acting_roles A on (M.id = A.movie_id)
+              join Principals P on (M.id = P.movie_id and A.name_id = P.name_id)
+              join Names N on (N.id = A.name_id)
+              where M.id = {movieId} order by P.ordering, A.played
+              """
+      cur.execute(query)
+      for tup in cur.fetchall():
+        print(" " + tup[0] + " as " + tup[1])
+      query = f"""
+              select N.name, C.role from Movies M 
+              join Crew_roles C on (M.id = C.movie_id) 
+              join Principals P on (M.id = P.movie_id and C.name_id = P.name_id) 
+              join Names N on (N.id = C.name_id) 
+              where M.id = {movieId} order by P.ordering, C.role
+              """
+      cur.execute(query)
+      print("and with")
+      for tup in cur.fetchall():
+        print(" " + tup[0] + ": " + tup[1].capitalize())
+  except Exception as e:
+    print("Unable to execute the query")
+except psycopg2.Error as err:
+  print("DB error: ", err)
+finally:
+  if db:
+    db.close()
+

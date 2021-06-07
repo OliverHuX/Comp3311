@@ -1,0 +1,36 @@
+01	./best
+02	./best 5
+03	./best 20
+04	./best xyz
+05	./best 0
+06	./best 1
+07	./rels
+08	./rels 1999
+09	./rels xyzzy
+10	./rels ocean
+11	./rels dangerous
+12	./rels "Ocean's Eleven"
+13	./rels 'Lemonade Joe'
+14	./rels 'Ne Zha'
+15	./minfo
+16	./minfo xyzzy
+17	./minfo 'Avatar'
+18	./minfo 'The Ring'
+19	./minfo '^The Ring$' 2002
+20	./minfo ': the return of the king'
+21	./minfo 'strangelove' 1964
+22	./minfo 'stars' xyzzy
+23	./minfo 'return of the king' 1234
+24	./minfo ring 2002
+25	./bio
+26	./bio xyzzy
+27	./bio 'Rafal Zimowski'
+28	./bio 'Horst Rieck'
+29	./bio 'helen morse'
+30	./bio belushi
+31	./bio belushi 1954
+32	./bio 'john Belushi'
+33	./bio 'David Lynch'
+34	./bio 'spike lee'
+35	./bio 'Peter Sellers'
+36	./bio 'michael j\. fox'

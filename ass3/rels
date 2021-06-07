@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+# COMP3311 20T3 Ass3 ... print info about different releases for Movie
+
+import sys
+import psycopg2
+#from helpers import whatever, functions, you, need
+from helpers import *
+# define any local helper functions here
+
+# set up some globals
+
+usage = "Usage: rels 'PartialMovieTitle'"
+db = None
+# process command-line args
+
+argc = len(sys.argv)
+if(argc != 2):
+  print(usage)
+  exit(1)
+pattern = sys.argv[1]
+pattern = pattern.replace('\'', '\'\'')
+# manipulate database
+
+try:
+  db = psycopg2.connect("dbname=imdb")
+  cur = db.cursor()
+  try:
+    query = """
+            select title, start_year from Movies
+            where lower(title) like """
+    query = query + "\'%" + pattern.lower() + "%\'" + "\norder by start_year, title"
+    cur.execute(query)
+
+    size = len(cur.fetchall())
+    if(size == 0):
+      print("No movie matching \'" + pattern + "\'" )
+    elif(size != 1):
+      cur.execute(query)
+      print("Movies matching \'" + pattern + "\'")
+      print("===============")
+      for tup in cur.fetchall():
+        name, year = tup
+        print(name + " " + getYear(year))
+    else:
+      query = """
+              select title, start_year, local_title, region, language from Movies, Aliases
+              where lower(title) like """
+      query = query + "\'%" + pattern.lower() + "%\'" + "\n and Movies.id = Aliases.movie_id\norder by Aliases.ordering"
+      cur.execute(query)
+      i = 0
+      for tup in cur.fetchall():
+        if(i == 0):
+          print(tup[0] + " " + getYear(tup[1]) + " was also released as")
+          i = -1
+        alias = tup[2]
+        region = tup[3]
+        language = tup[4]
+        if(region is not None and language is not None):
+          print("\'" + alias + "\'" + " (region: " + region.rstrip() + ", language: " + language.rstrip() + ")")
+        elif(region is not None):
+          print("\'" + alias + "\'" + " (region: " + region.rstrip() + ")")
+        else:
+          print("\'" + alias + "\'")
+  except Exception as e:
+    print("Unable to execute the query")
+except psycopg2.Error as err:
+  print("DB error: ", err)
+finally:
+  if db:
+    db.close()
